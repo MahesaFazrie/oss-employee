@@ -59,6 +59,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/monthly/export', [App\Http\Controllers\Api\RecapController::class, 'export'])->name('api.recap.monthly.export');
     });
 
+    // Payroll Routes
+    Route::middleware('check.permission:manage-payroll')->prefix('payroll')->group(function () {
+        Route::post('/draft', [App\Http\Controllers\Api\PayrollController::class, 'createDraft'])->name('api.payroll.draft');
+        Route::get('/draft/preview', [App\Http\Controllers\Api\PayrollController::class, 'preview'])->name('api.payroll.draft.preview');
+        Route::post('/{id}/submit', [App\Http\Controllers\Api\PayrollController::class, 'submit'])->name('api.payroll.submit');
+        Route::get('/', [App\Http\Controllers\Api\PayrollController::class, 'index'])->name('api.payroll.index');
+        Route::get('/{id}', [App\Http\Controllers\Api\PayrollController::class, 'show'])->name('api.payroll.show');
+    });
+
     // Admin Routes
     Route::prefix('admin')->group(function () {
         Route::middleware('check.permission:manage-users')->group(function () {

@@ -12,6 +12,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+use App\Models\PayrollStatusHistory;
+
 class PayrollController extends Controller
 {
     use ApiResponseTrait;
@@ -40,8 +42,6 @@ class PayrollController extends Controller
         $user = $request->user();
         $month = (int) $request->period_month;
         $year = (int) $request->period_year;
-
-        // dump("Request token: " . $request->bearerToken(), "Resolved user ID: " . $user->id);
 
         // Check for duplicate submission
         $existing = PayrollSubmission::forUser($user->id)
@@ -155,6 +155,15 @@ class PayrollController extends Controller
                 'total_entries'          => $snapshotResult['total_entries'],
             ]);
 
+            // Record status history
+            PayrollStatusHistory::create([
+                'payroll_submission_id' => $submission->id,
+                'changed_by'            => $user->id,
+                'from_status'           => PayrollStateMachine::STATUS_DRAFT,
+                'to_status'             => PayrollStateMachine::STATUS_SUBMITTED,
+                'notes'                 => null,
+            ]);
+
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -169,6 +178,71 @@ class PayrollController extends Controller
         return $this->successResponse(
             data: $this->formatSubmission($submission, includeSnapshot: true),
             message: 'Payroll berhasil disubmit.'
+        );
+    }
+
+    /**
+     * Sprint 4: Resubmit payroll after revision — delete old snapshot, create fresh one.
+     *
+     * POST /api/payroll/{id}/resubmit
+     */
+    public function resubmit(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        $submission = PayrollSubmission::forUser($user->id)->find($id);
+
+        if (! $submission) {
+            return $this->errorResponse(message: 'Payroll submission tidak ditemukan.', code: 404);
+        }
+
+        // Only revision_requested → submitted is allowed
+        try {
+            $this->stateMachine->transition($submission->status, PayrollStateMachine::STATUS_SUBMITTED);
+        } catch (\InvalidArgumentException $e) {
+            return $this->errorResponse(message: $e->getMessage(), code: 409);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            // Delete old snapshot items
+            $submission->snapshotItems()->delete();
+
+            // Create fresh snapshot from updated logbooks
+            $snapshotResult = $this->snapshotService->createSnapshot($submission);
+
+            // Update submission
+            $submission->update([
+                'status'                 => PayrollStateMachine::STATUS_SUBMITTED,
+                'submitted_at'           => now(),
+                'total_duration_seconds' => $snapshotResult['total_duration'],
+                'total_entries'          => $snapshotResult['total_entries'],
+            ]);
+
+            // Record status history
+            PayrollStatusHistory::create([
+                'payroll_submission_id' => $submission->id,
+                'changed_by'            => $user->id,
+                'from_status'           => PayrollStateMachine::STATUS_REVISION_REQUESTED,
+                'to_status'             => PayrollStateMachine::STATUS_SUBMITTED,
+                'notes'                 => 'Resubmit setelah revisi.',
+            ]);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return $this->errorResponse(
+                message: 'Gagal resubmit payroll. Silakan coba lagi.',
+                code: 500
+            );
+        }
+
+        $submission->load('snapshotItems');
+
+        return $this->successResponse(
+            data: $this->formatSubmission($submission, includeSnapshot: true),
+            message: 'Payroll berhasil diresubmit setelah revisi.'
         );
     }
 
@@ -217,6 +291,47 @@ class PayrollController extends Controller
         return $this->successResponse(
             data: $this->formatSubmission($submission, includeSnapshot: true),
             message: 'Detail payroll berhasil diambil.'
+        );
+    }
+
+    /**
+     * OSS-410: Get status history timeline for a payroll submission.
+     *
+     * GET /api/payroll/{id}/history
+     */
+    public function history(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        // Own payroll or Direktur/Superadmin
+        if ($user->hasPermission('approve-payroll') || $user->hasRole('superadmin')) {
+            $submission = PayrollSubmission::find($id);
+        } else {
+            $submission = PayrollSubmission::forUser($user->id)->find($id);
+        }
+
+        if (! $submission) {
+            return $this->errorResponse(message: 'Payroll submission tidak ditemukan.', code: 404);
+        }
+
+        $histories = $submission->statusHistories()
+            ->with('changedByUser:id,name')
+            ->orderBy('created_at')
+            ->get();
+
+        return $this->successResponse(
+            data: $histories->map(fn ($h) => [
+                'id'          => $h->id,
+                'from_status' => $h->from_status,
+                'to_status'   => $h->to_status,
+                'notes'       => $h->notes,
+                'changed_by'  => $h->changedByUser ? [
+                    'id'   => $h->changedByUser->id,
+                    'name' => $h->changedByUser->name,
+                ] : null,
+                'created_at'  => $h->created_at->toIso8601String(),
+            ]),
+            message: 'Riwayat status payroll berhasil diambil.'
         );
     }
 

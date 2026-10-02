@@ -14,11 +14,6 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group.
-|
 */
 
 Route::get('/health', HealthController::class)->name('api.health');
@@ -29,7 +24,7 @@ Route::post('/login', LoginController::class)->name('api.login');
 Route::post('/forgot-password', ForgotPasswordController::class)->name('api.forgot-password');
 Route::post('/reset-password', ResetPasswordController::class)->name('api.reset-password');
 
-// Protected Auth Routes
+// Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', LogoutController::class)->name('api.logout');
     Route::get('/me', MeController::class)->name('api.me');
@@ -53,22 +48,45 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/logbooks/{id}', [App\Http\Controllers\Api\LogbookController::class, 'show'])->name('api.logbooks.show');
     });
 
+    // Logbook Comments (owner + Direktur)
+    Route::post('/logbooks/{id}/comments', [App\Http\Controllers\Api\LogbookCommentController::class, 'store'])->name('api.logbooks.comments.store');
+    Route::get('/logbooks/{id}/comments', [App\Http\Controllers\Api\LogbookCommentController::class, 'index'])->name('api.logbooks.comments.index');
+
     // Recap Routes
     Route::middleware('check.permission:view-logbook')->prefix('recap')->group(function () {
         Route::get('/monthly', [App\Http\Controllers\Api\RecapController::class, 'monthly'])->name('api.recap.monthly');
         Route::get('/monthly/export', [App\Http\Controllers\Api\RecapController::class, 'export'])->name('api.recap.monthly.export');
     });
 
-    // Payroll Routes
+    // Payroll Routes (Karyawan)
     Route::middleware('check.permission:manage-payroll')->prefix('payroll')->group(function () {
         Route::post('/draft', [App\Http\Controllers\Api\PayrollController::class, 'createDraft'])->name('api.payroll.draft');
         Route::get('/draft/preview', [App\Http\Controllers\Api\PayrollController::class, 'preview'])->name('api.payroll.draft.preview');
         Route::post('/{id}/submit', [App\Http\Controllers\Api\PayrollController::class, 'submit'])->name('api.payroll.submit');
+        Route::post('/{id}/resubmit', [App\Http\Controllers\Api\PayrollController::class, 'resubmit'])->name('api.payroll.resubmit');
         Route::get('/', [App\Http\Controllers\Api\PayrollController::class, 'index'])->name('api.payroll.index');
         Route::get('/{id}', [App\Http\Controllers\Api\PayrollController::class, 'show'])->name('api.payroll.show');
     });
 
-    // Admin Routes
+    // Payroll Status History (accessible by owner + Direktur)
+    Route::get('/payroll/{id}/history', [App\Http\Controllers\Api\PayrollController::class, 'history'])->name('api.payroll.history');
+
+    // ─── Director Routes ─────────────────────────────────
+    Route::prefix('director')->middleware('check.permission:approve-payroll')->group(function () {
+        // Logbook Review
+        Route::get('/logbooks', [App\Http\Controllers\Api\Director\DirectorLogbookController::class, 'index'])->name('api.director.logbooks.index');
+        Route::post('/logbooks/{id}/approve', [App\Http\Controllers\Api\Director\DirectorLogbookController::class, 'approve'])->name('api.director.logbooks.approve');
+        Route::post('/logbooks/{id}/request-revision', [App\Http\Controllers\Api\Director\DirectorLogbookController::class, 'requestRevision'])->name('api.director.logbooks.request-revision');
+
+        // Payroll Review
+        Route::get('/payrolls', [App\Http\Controllers\Api\Director\DirectorPayrollController::class, 'index'])->name('api.director.payrolls.index');
+        Route::get('/payrolls/{id}', [App\Http\Controllers\Api\Director\DirectorPayrollController::class, 'show'])->name('api.director.payrolls.show');
+        Route::post('/payrolls/{id}/approve', [App\Http\Controllers\Api\Director\DirectorPayrollController::class, 'approve'])->name('api.director.payrolls.approve');
+        Route::post('/payrolls/{id}/reject', [App\Http\Controllers\Api\Director\DirectorPayrollController::class, 'reject'])->name('api.director.payrolls.reject');
+        Route::post('/payrolls/{id}/request-revision', [App\Http\Controllers\Api\Director\DirectorPayrollController::class, 'requestRevision'])->name('api.director.payrolls.request-revision');
+    });
+
+    // ─── Admin Routes ────────────────────────────────────
     Route::prefix('admin')->group(function () {
         Route::middleware('check.permission:manage-users')->group(function () {
             Route::get('/users', [UserManagementController::class, 'index'])->name('api.admin.users.index');

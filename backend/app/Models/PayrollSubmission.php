@@ -40,6 +40,11 @@ class PayrollSubmission extends Model
         return $this->hasMany(PayrollSnapshotItem::class);
     }
 
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(PayrollStatusHistory::class)->orderByDesc('created_at');
+    }
+
     // ─── Scopes ──────────────────────────────────────────
 
     public function scopeForUser($query, int $userId)

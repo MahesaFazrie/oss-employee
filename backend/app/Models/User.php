@@ -86,6 +86,14 @@ class User extends Authenticatable
     }
 
     /**
+     * All payroll submissions for this user.
+     */
+    public function payrollSubmissions(): HasMany
+    {
+        return $this->hasMany(PayrollSubmission::class);
+    }
+
+    /**
      * Check if the user has a specific role.
      */
     public function hasRole(string $roleName): bool

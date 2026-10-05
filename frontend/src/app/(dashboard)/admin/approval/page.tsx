@@ -17,8 +17,8 @@ export default function ApprovalPage() {
     setError(null);
     try {
       const response = await adminService.getUsers({ status: 'pending' });
-      // Di Laravel dengan pagination biasanya data ada di response.data.data
-      setUsers(response?.data?.data || []);
+      // Di Laravel dengan ->get(), datanya langsung di response.data
+      setUsers(response?.data || []);
     } catch (err: any) {
       setError('Gagal mengambil data akun pending. Pastikan backend sudah menyala.');
     } finally {
@@ -29,7 +29,7 @@ export default function ApprovalPage() {
   const handleApprove = async (id: number) => {
     try {
       // Default menyematkan role "employee" (ID 3, akan disesuaikan saat final)
-      await adminService.approveUser(id, [3], 'Approved via Dashboard UI'); 
+      await adminService.approveUser(id, 3, 'Approved via Dashboard UI'); 
       alert('Akun berhasil disetujui!');
       fetchPendingUsers(); // Refresh tabel
     } catch (error) {

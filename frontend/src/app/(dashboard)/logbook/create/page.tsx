@@ -6,7 +6,13 @@ import Link from 'next/link';
 
 export default function CreateLogbookPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({ activity: '', output: '', document_link: '' });
+  const [formData, setFormData] = useState({ 
+    title: '', 
+    description: '', 
+    document_link: '',
+    date: new Date().toISOString().split('T')[0],
+    duration_minutes: ''
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -16,7 +22,15 @@ export default function CreateLogbookPage() {
     setError(null);
 
     try {
-      await logbookService.storeLogbook(formData);
+      // Menyesuaikan dengan schema backend Hafizh
+      const payload = {
+        title: formData.title,
+        description: formData.description + (formData.document_link ? `\n\nLink Pendukung: ${formData.document_link}` : ''),
+        date: formData.date,
+        duration_seconds: parseInt(formData.duration_minutes) * 60 || 3600 // Konversi menit ke detik
+      };
+
+      await logbookService.storeLogbook(payload);
       alert('Logbook berhasil disimpan!');
       router.push('/logbook');
     } catch (err: any) {
@@ -37,26 +51,51 @@ export default function CreateLogbookPage() {
       {error && <div className="bg-red-50 text-red-600 p-4 rounded-md mb-6 text-sm font-medium">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Tanggal Pekerjaan</label>
+            <input 
+              type="date"
+              required 
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              className="block w-full px-4 py-3 border border-gray-300 rounded-md text-gray-900 bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Durasi (Menit)</label>
+            <input 
+              type="number"
+              required 
+              min="1"
+              value={formData.duration_minutes}
+              onChange={(e) => setFormData({ ...formData, duration_minutes: e.target.value })}
+              placeholder="Contoh: 120"
+              className="block w-full px-4 py-3 border border-gray-300 rounded-md text-gray-900 bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Aktivitas / Pekerjaan yang Dilakukan</label>
-          <textarea 
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Judul Pekerjaan</label>
+          <input 
+            type="text"
             required 
-            rows={4}
-            value={formData.activity}
-            onChange={(e) => setFormData({ ...formData, activity: e.target.value })}
-            placeholder="Contoh: Mengembangkan fitur login frontend..."
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            placeholder="Contoh: Mengembangkan fitur login frontend"
             className="block w-full px-4 py-3 border border-gray-300 rounded-md text-gray-900 bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Output / Hasil</label>
-          <input 
-            type="text"
+          <label className="block text-sm font-semibold text-gray-700 mb-2">Deskripsi / Hasil</label>
+          <textarea 
             required 
-            value={formData.output}
-            onChange={(e) => setFormData({ ...formData, output: e.target.value })}
-            placeholder="Contoh: Halaman register & login selesai 100%"
+            rows={4}
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Rincian hasil pekerjaan..."
             className="block w-full px-4 py-3 border border-gray-300 rounded-md text-gray-900 bg-white shadow-sm focus:ring-blue-500 focus:border-blue-500"
           />
         </div>

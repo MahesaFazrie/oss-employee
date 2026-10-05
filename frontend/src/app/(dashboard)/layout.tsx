@@ -10,19 +10,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   
-  // Nanti nilai ini akan dinamis diambil dari Context/API /auth/me
-  // Saya tambahkan 'logbooks.view' untuk mengizinkan menu logbook
-  const [userPermissions] = useState<string[]>(['dashboard.view', 'users.approve', 'roles.view', 'logbooks.view']);
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
 
+  useEffect(() => {
+    // Ambil data user dari localStorage yang disimpan saat login
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        // Cek jika user adalah superadmin
+        if (user.role?.name === 'superadmin') {
+          setIsSuperadmin(true);
+        }
+        
+        // Ambil daftar permission (berdasarkan struktur data role.permissions)
+        if (user.role?.permissions) {
+          const perms = user.role.permissions.map((p: any) => p.name);
+          setUserPermissions(perms);
+        }
+      } catch (e) {
+        console.error('Failed to parse user data');
+      }
+    }
+  }, []);
   const navigation = [
     { name: 'Dashboard', href: '/', permission: null },
-    { name: 'Logbook Saya', href: '/logbook', permission: 'logbooks.view' },
-    { name: 'Approval Akun', href: '/admin/approval', permission: 'users.approve' },
-    { name: 'Role & Permission', href: '/admin/roles', permission: 'roles.view' },
+    { name: 'Logbook Saya', href: '/logbook', permission: 'view-logbook' },
+    { name: 'Approval Akun', href: '/admin/approval', permission: 'manage-users' },
+    { name: 'Role & Permission', href: '/admin/roles', permission: 'manage-roles' },
   ];
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     router.push('/login');
   };
 
@@ -36,7 +57,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
           {navigation.map((item) => {
             // Permission-aware rendering (OSS-111)
-            if (item.permission && !userPermissions.includes(item.permission)) {
+            const hasAccess = isSuperadmin || !item.permission || userPermissions.includes(item.permission);
+            if (!hasAccess) {
               return null;
             }
             

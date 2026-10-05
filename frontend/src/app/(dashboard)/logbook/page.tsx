@@ -14,7 +14,8 @@ export default function LogbookPage() {
   const fetchLogbooks = async () => {
     try {
       const res = await logbookService.getLogbooks();
-      setLogbooks(res.data?.data || []);
+      // Backend menggunakan ->get(), jadi res.data langsung berisi array, bukan objek pagination
+      setLogbooks(res.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -66,8 +67,8 @@ export default function LogbookPage() {
               ) : logbooks.map((log: any) => (
                 <tr key={log.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(log.created_at).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{log.activity}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{log.output}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">{log.title}</td>
+                  <td className="px-6 py-4 text-sm text-gray-500 whitespace-pre-wrap">{log.description}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${log.status === 'approved' ? 'bg-green-100 text-green-800' : log.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}`}>
                       {log.status || 'pending'}

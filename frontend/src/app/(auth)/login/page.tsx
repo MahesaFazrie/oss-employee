@@ -21,9 +21,13 @@ export default function LoginPage() {
       const response = await authService.login({ email, password });
       if (response.success && response.data?.token) {
         // Simpan token untuk interceptor axios
+        // Simpan token untuk interceptor axios
         localStorage.setItem('token', response.data.token);
         
-        // Asumsi login berhasil, navigasi ke halaman dashboard
+        // Simpan data user (termasuk role & permissions) untuk sidebar dashboard
+        if (response.data.user) {
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+        }
         router.push('/'); 
       }
     } catch (err: any) {

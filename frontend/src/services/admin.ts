@@ -6,8 +6,8 @@ export const adminService = {
     const response = await apiClient.get('/admin/users', { params });
     return response.data;
   },
-  async approveUser(id: number, roleIds: number[], note: string = '') {
-    const response = await apiClient.post(`/admin/users/${id}/approve`, { role_ids: roleIds, note });
+  async approveUser(id: number, roleId: number, note: string = '') {
+    const response = await apiClient.post(`/admin/users/${id}/approve`, { role_id: roleId, note });
     return response.data;
   },
   async rejectUser(id: number, note: string = '') {

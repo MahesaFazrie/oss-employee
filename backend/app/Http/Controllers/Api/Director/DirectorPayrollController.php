@@ -112,6 +112,61 @@ class DirectorPayrollController extends Controller
         return $this->processReview($request, $id, PayrollStateMachine::STATUS_REVISION_REQUESTED, 'Permintaan revisi telah dikirim.');
     }
 
+    /**
+     * OSS-502: Mark payroll as processed (requires payment proof uploaded).
+     *
+     * POST /api/director/payrolls/{id}/mark-processed
+     */
+    public function markProcessed(Request $request, int $id): JsonResponse
+    {
+        $reviewer = $request->user();
+        $submission = PayrollSubmission::with('paymentProof')->find($id);
+
+        if (! $submission) {
+            return $this->errorResponse(message: 'Payroll submission tidak ditemukan.', code: 404);
+        }
+
+        // Must have payment proof uploaded
+        if (! $submission->paymentProof) {
+            return $this->errorResponse(
+                message: 'Bukti pembayaran harus diupload terlebih dahulu sebelum menandai sebagai processed.',
+                code: 422
+            );
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $this->stateMachine->transition($submission->status, PayrollStateMachine::STATUS_PROCESSED);
+
+            PayrollStatusHistory::create([
+                'payroll_submission_id' => $submission->id,
+                'changed_by'            => $reviewer->id,
+                'from_status'           => $submission->status,
+                'to_status'             => PayrollStateMachine::STATUS_PROCESSED,
+                'notes'                 => $request->notes,
+            ]);
+
+            $submission->update(['status' => PayrollStateMachine::STATUS_PROCESSED]);
+
+            DB::commit();
+
+            // Trigger Notification (to the owner)
+            $submission->user->notify(new \App\Notifications\PayrollStatusNotification($submission, PayrollStateMachine::STATUS_PROCESSED, $request->notes, false));
+
+        } catch (\InvalidArgumentException $e) {
+            DB::rollBack();
+            return $this->errorResponse(message: $e->getMessage(), code: 409);
+        }
+
+        $submission->load(['statusHistories.changedByUser:id,name', 'user:id,name,email']);
+
+        return $this->successResponse(
+            data: $this->formatSubmission($submission, includeDetails: true),
+            message: 'Payroll berhasil ditandai sebagai processed.'
+        );
+    }
+
     // ─── Private Helpers ─────────────────────────────────
 
     /**
@@ -161,6 +216,10 @@ class DirectorPayrollController extends Controller
             $submission->update(['status' => $targetStatus]);
 
             DB::commit();
+
+            // Trigger Notification (to the owner)
+            $submission->user->notify(new \App\Notifications\PayrollStatusNotification($submission, $targetStatus, $request->notes, false));
+            
         } catch (\InvalidArgumentException $e) {
             DB::rollBack();
             return $this->errorResponse(message: $e->getMessage(), code: 409);

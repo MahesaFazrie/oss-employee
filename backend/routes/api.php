@@ -84,10 +84,35 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/payrolls/{id}/approve', [App\Http\Controllers\Api\Director\DirectorPayrollController::class, 'approve'])->name('api.director.payrolls.approve');
         Route::post('/payrolls/{id}/reject', [App\Http\Controllers\Api\Director\DirectorPayrollController::class, 'reject'])->name('api.director.payrolls.reject');
         Route::post('/payrolls/{id}/request-revision', [App\Http\Controllers\Api\Director\DirectorPayrollController::class, 'requestRevision'])->name('api.director.payrolls.request-revision');
+        Route::post('/payrolls/{id}/mark-processed', [App\Http\Controllers\Api\Director\DirectorPayrollController::class, 'markProcessed'])->name('api.director.payrolls.mark-processed');
+
+        // Payment Proof
+        Route::post('/payrolls/{id}/payment-proof', [App\Http\Controllers\Api\Director\PaymentProofController::class, 'upload'])->name('api.director.payment-proof.upload');
+    });
+
+    // Payment Proof Download (owner + director)
+    Route::get('/director/payrolls/{id}/payment-proof', [App\Http\Controllers\Api\Director\PaymentProofController::class, 'download'])->name('api.payment-proof.download');
+
+    // ─── Dashboards ──────────────────────────────────────
+    Route::prefix('dashboard')->group(function () {
+        Route::get('/employee', [App\Http\Controllers\Api\DashboardController::class, 'employee'])->name('api.dashboard.employee');
+        Route::get('/director', [App\Http\Controllers\Api\DashboardController::class, 'director'])->middleware('check.permission:approve-payroll')->name('api.dashboard.director');
+    });
+
+    // ─── Notifications ───────────────────────────────────
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [App\Http\Controllers\Api\NotificationController::class, 'index'])->name('api.notifications.index');
+        Route::post('/read-all', [App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead'])->name('api.notifications.read-all');
+        Route::post('/{id}/read', [App\Http\Controllers\Api\NotificationController::class, 'markAsRead'])->name('api.notifications.read');
     });
 
     // ─── Admin Routes ────────────────────────────────────
     Route::prefix('admin')->group(function () {
+        // Audit Logs (requires view-reports or superadmin)
+        Route::middleware('check.permission:view-reports')->group(function () {
+            Route::get('/audit-logs', [App\Http\Controllers\Api\Admin\AuditLogController::class, 'index'])->name('api.admin.audit-logs.index');
+        });
+
         Route::middleware('check.permission:manage-users')->group(function () {
             Route::get('/users', [UserManagementController::class, 'index'])->name('api.admin.users.index');
             Route::post('/users/{id}/approve', [UserManagementController::class, 'approve'])->name('api.admin.users.approve');

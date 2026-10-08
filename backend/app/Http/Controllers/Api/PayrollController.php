@@ -165,6 +165,12 @@ class PayrollController extends Controller
             ]);
 
             DB::commit();
+
+            // OSS-508: Trigger Notification to Directors
+            $directors = User::whereHas('role', fn($q) => $q->where('name', 'direktur'))->get();
+            foreach ($directors as $director) {
+                $director->notify(new \App\Notifications\PayrollStatusNotification($submission, 'submitted', null, true));
+            }
         } catch (\Throwable $e) {
             DB::rollBack();
             return $this->errorResponse(

@@ -79,6 +79,10 @@ class DirectorLogbookController extends Controller
                 $request->user()->id,
                 $request->notes
             );
+
+            // Trigger Notification
+            $logbook->user->notify(new \App\Notifications\LogbookReviewedNotification($logbook, 'approved'));
+
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse(message: $e->getMessage(), code: 409);
         }
@@ -103,7 +107,7 @@ class DirectorLogbookController extends Controller
             'comment' => ['required', 'string', 'max:2000'],
         ]);
 
-        $logbook = Logbook::find($id);
+        $logbook = Logbook::with('user')->find($id);
 
         if (! $logbook) {
             return $this->errorResponse(message: 'Logbook tidak ditemukan.', code: 404);
@@ -116,6 +120,10 @@ class DirectorLogbookController extends Controller
                 $request->user()->id,
                 $request->comment
             );
+
+            // Trigger Notification
+            $logbook->user->notify(new \App\Notifications\LogbookReviewedNotification($logbook, 'revision_requested', $request->comment));
+
         } catch (\InvalidArgumentException $e) {
             return $this->errorResponse(message: $e->getMessage(), code: 409);
         }

@@ -113,3 +113,20 @@ Relasi many-to-many antara `roles` dan `permissions`.
 - User punya satu Role (one-to-many).
 - Role punya banyak Permission (many-to-many).
 - Semua perubahan role/permission dilakukan via migration atau admin panel, bukan hardcode.
+
+## Performance Indexes (Sprint 6 — OSS-606)
+
+Index tambahan yang dibuat untuk optimasi query pada endpoint dashboard, filter, dan list:
+
+| Table | Index Name | Columns | Purpose |
+|-------|-----------|---------|---------|
+| `logbooks` | `idx_logbooks_verification_status` | `verification_status` | Filter logbook by status (dashboard, director review) |
+| `logbooks` | `idx_logbooks_user_date` | `user_id, date` | Monthly recap & dashboard query |
+| `work_timers` | `idx_work_timers_user_status` | `user_id, status` | Active timer lookup (dashboard) |
+| `payroll_submissions` | `idx_payroll_submissions_status` | `status` | Pending approval/processing count (dashboard) |
+| `payroll_submissions` | `idx_payroll_submissions_user_period` | `user_id, period_year, period_month` | User's payroll per period lookup |
+| `payroll_status_histories` | `idx_payroll_status_histories_submission` | `payroll_submission_id` | History lookup per submission |
+| `audit_logs` | `idx_audit_logs_action` | `action` | Filter audit logs by action type |
+| `audit_logs` | `idx_audit_logs_created_at` | `created_at` | Date range filter on audit logs |
+| `users` | `idx_users_status` | `status` | Active employee count (dashboard) |
+

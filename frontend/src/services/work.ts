@@ -25,3 +25,21 @@ export const logbookService = {
     return response.data;
   }
 };
+
+export const recapService = {
+  async getMonthlyRecap(month: number, year: number, userId?: number) {
+    const params: any = { month, year };
+    if (userId) params.user_id = userId;
+    const response = await apiClient.get('/recap/monthly', { params });
+    return response.data; // Ini mengembalikan JSON { success, data: { summary, entries }, message }
+  },
+  async exportExcel(month: number, year: number, userId?: number) {
+    const params: any = { month, year };
+    if (userId) params.user_id = userId;
+    const response = await apiClient.get('/recap/monthly/export', { 
+      params,
+      responseType: 'blob' // Karena balasan berupa file Excel
+    });
+    return response;
+  }
+};

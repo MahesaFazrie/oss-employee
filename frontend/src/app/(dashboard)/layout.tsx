@@ -37,6 +37,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navigation = [
     { name: 'Dashboard', href: '/', permission: null },
     { name: 'Logbook Saya', href: '/logbook', permission: 'view-logbook' },
+    { name: 'Laporan & Rekap', href: '/recap', permission: 'view-logbook' },
+    { name: 'Pengajuan Payroll', href: '/payroll', permission: 'manage-payroll' },
     { name: 'Approval Akun', href: '/admin/approval', permission: 'manage-users' },
     { name: 'Role & Permission', href: '/admin/roles', permission: 'manage-roles' },
   ];
@@ -90,7 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white shadow-sm h-16 flex items-center justify-between px-8 border-b border-gray-200">
           <h1 className="text-xl font-semibold text-gray-800">
-            {navigation.find(n => n.href === pathname)?.name || 'Dashboard'}
+            {navigation.find(n => n.href === pathname || (n.href !== '/' && pathname.startsWith(n.href)))?.name || 'Dashboard'}
           </h1>
           <TimerWidget />
         </header>

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { timerService } from '@/services/work';
 
 export default function TimerWidget() {
+  const router = useRouter();
   const [isActive, setIsActive] = useState(false);
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [elapsed, setElapsed] = useState(0); // dalam detik
@@ -54,16 +56,29 @@ export default function TimerWidget() {
   };
 
   const handleStop = async () => {
-    const note = prompt('Pekerjaan Anda selesai! Masukkan ringkasan singkat (opsional):');
-    if (note === null) return; // User menekan cancel
+    if (!confirm('Apakah Anda yakin ingin mengakhiri sesi kerja ini? Anda akan diarahkan ke form Logbook.')) return;
 
     setIsLoading(true);
     try {
-      await timerService.stop(note);
+      const res = await timerService.stop('');
+      
+      // Simpan data timer yang baru selesai ke sessionStorage
+      // agar bisa dibaca secara otomatis oleh form Logbook
+      if (res.data) {
+        sessionStorage.setItem('last_stopped_timer', JSON.stringify({
+          id: res.data.id,
+          duration_seconds: res.data.duration_seconds,
+          started_at: res.data.started_at,
+          stopped_at: res.data.stopped_at,
+        }));
+      }
+
       setIsActive(false);
       setStartTime(null);
       setElapsed(0);
-      alert('Sesi kerja diakhiri. Jangan lupa mengisi rincian di Logbook Anda!');
+
+      // Langsung arahkan ke halaman form Logbook
+      router.push('/logbook/create');
     } catch (err: any) {
       alert(err.response?.data?.message || 'Gagal mengakhiri timer.');
     } finally {

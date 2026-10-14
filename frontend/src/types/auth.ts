@@ -11,7 +11,8 @@ export interface AuthResponse {
   success: boolean;
   message?: string;
   data?: {
-    user?: User;
+    token?: string;
+    user?: User | any;
     // Field khusus register response
     id?: number;
     name?: string;

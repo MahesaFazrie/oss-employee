@@ -39,6 +39,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { name: 'Logbook Saya', href: '/logbook', permission: 'view-logbook' },
     { name: 'Laporan & Rekap', href: '/recap', permission: 'view-logbook' },
     { name: 'Pengajuan Payroll', href: '/payroll', permission: 'manage-payroll' },
+    { name: 'Verifikasi Logbook', href: '/director/logbooks', permission: 'approve-payroll' },
+    { name: 'Approval Payroll', href: '/director/payrolls', permission: 'approve-payroll' },
     { name: 'Approval Akun', href: '/admin/approval', permission: 'manage-users' },
     { name: 'Role & Permission', href: '/admin/roles', permission: 'manage-roles' },
   ];

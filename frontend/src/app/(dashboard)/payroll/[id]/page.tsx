@@ -11,8 +11,10 @@ export default function PayrollDetailPage() {
   const id = params?.id as string;
 
   const [submission, setSubmission] = useState<PayrollSubmission | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResubmitting, setIsResubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDetail = async () => {
@@ -20,8 +22,12 @@ export default function PayrollDetailPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await payrollService.getSubmissionDetail(id);
+      const [res, historyRes] = await Promise.all([
+        payrollService.getSubmissionDetail(id),
+        payrollService.getPayrollHistory(id).catch(() => ({ data: [] })),
+      ]);
       setSubmission(res.data);
+      setHistory(historyRes.data || []);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Gagal mengambil detail payroll.');
     } finally {
@@ -41,12 +47,29 @@ export default function PayrollDetailPage() {
     setIsSubmitting(true);
     try {
       await payrollService.submitPayroll(id);
-      alert('Payroll berhasil diajukan!');
+      alert('Payroll berhasil diajukan ke atasan!');
       fetchDetail();
     } catch (err: any) {
       alert(err.response?.data?.message || 'Gagal mengajukan payroll.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleResubmit = async () => {
+    if (!confirm('Apakah Anda yakin sudah memperbaiki catatan kerja dan ingin mengajukan ulang payroll ini? Snapshot akan diperbarui.')) {
+      return;
+    }
+
+    setIsResubmitting(true);
+    try {
+      await payrollService.resubmitPayroll(id);
+      alert('Payroll berhasil diajukan ulang setelah revisi!');
+      fetchDetail();
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Gagal mengajukan ulang payroll.');
+    } finally {
+      setIsResubmitting(false);
     }
   };
 
@@ -104,6 +127,12 @@ export default function PayrollDetailPage() {
     );
   }
 
+  // Ambil catatan revisi terbaru jika ada
+  const latestRevisionNote = history
+    .slice()
+    .reverse()
+    .find((h) => h.to_status === 'revision_requested')?.notes;
+
   return (
     <div className="bg-white shadow rounded-lg p-6 sm:p-8 border border-gray-100 max-w-5xl mx-auto space-y-8">
       {/* Top Header */}
@@ -127,6 +156,40 @@ export default function PayrollDetailPage() {
           &larr; Kembali ke Daftar
         </Link>
       </div>
+
+      {/* Revision Requested Notice Banner */}
+      {submission.status === 'revision_requested' && (
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-5 space-y-3">
+          <div className="flex items-start gap-3">
+            <span className="text-orange-600 text-2xl">⚠️</span>
+            <div className="flex-1">
+              <h4 className="text-sm font-bold text-orange-900">Pengajuan Ini Memerlukan Revisi dari Atasan</h4>
+              {latestRevisionNote ? (
+                <div className="mt-2 bg-white p-3 rounded border border-orange-200 text-xs text-orange-950">
+                  <strong>Catatan dari Atasan:</strong>
+                  <p className="mt-0.5 whitespace-pre-wrap italic">&ldquo;{latestRevisionNote}&rdquo;</p>
+                </div>
+              ) : (
+                <p className="text-xs text-orange-700 mt-0.5">
+                  Atasan meminta Anda untuk meninjau dan memperbaiki logbook pada periode ini.
+                </p>
+              )}
+              <p className="text-xs text-orange-800 mt-2">
+                Setelah Anda memperbaiki catatan di menu <strong>Logbook Saya</strong>, klik tombol di bawah untuk membuat snapshot baru dan mengirimkannya kembali ke atasan.
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end pt-2 border-t border-orange-200">
+            <button
+              onClick={handleResubmit}
+              disabled={isResubmitting}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2.5 rounded-md text-sm font-semibold shadow transition-colors disabled:opacity-50"
+            >
+              {isResubmitting ? 'Mengirim Ulang...' : 'Ajukan Ulang Payroll (Resubmit)'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Draft Action Banner */}
       {submission.status === 'draft' && (
@@ -226,6 +289,44 @@ export default function PayrollDetailPage() {
               </tbody>
             </table>
           </div>
+        )}
+      </div>
+
+      {/* Status History (Audit Trail) */}
+      <div>
+        <h3 className="text-lg font-bold text-gray-800 mb-3">Riwayat Status & Catatan Peninjau</h3>
+        {history.length > 0 ? (
+          <div className="space-y-3">
+            {history.map((h) => (
+              <div key={h.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-900">{h.changed_by?.name || 'Sistem'}</span>
+                    <span className="text-gray-400">&bull;</span>
+                    <span className="text-gray-600">
+                      Mengubah status dari <strong>{h.from_status}</strong> &rarr; <strong className="text-blue-600">{h.to_status}</strong>
+                    </span>
+                  </div>
+                  {h.notes && (
+                    <div className="mt-1 text-gray-700 italic bg-white p-2 rounded border border-gray-100">
+                      &ldquo;{h.notes}&rdquo;
+                    </div>
+                  )}
+                </div>
+                <div className="text-gray-400 whitespace-nowrap">
+                  {new Date(h.created_at).toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-gray-400">Belum ada riwayat perubahan status.</p>
         )}
       </div>
     </div>

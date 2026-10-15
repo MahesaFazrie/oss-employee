@@ -23,6 +23,18 @@ export const logbookService = {
   async storeLogbook(data: any) {
     const response = await apiClient.post('/logbooks', data);
     return response.data;
+  },
+  async updateLogbook(id: number | string, data: any) {
+    const response = await apiClient.put(`/logbooks/${id}`, data);
+    return response.data;
+  },
+  async getComments(id: number | string) {
+    const response = await apiClient.get(`/logbooks/${id}/comments`);
+    return response.data;
+  },
+  async addComment(id: number | string, comment: string) {
+    const response = await apiClient.post(`/logbooks/${id}/comments`, { comment });
+    return response.data;
   }
 };
 

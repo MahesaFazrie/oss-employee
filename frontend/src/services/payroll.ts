@@ -71,5 +71,15 @@ export const payrollService = {
   async submitPayroll(id: number | string): Promise<{ success: boolean; data: PayrollSubmission }> {
     const response = await apiClient.post(`/payroll/${id}/submit`);
     return response.data;
+  },
+
+  async resubmitPayroll(id: number | string): Promise<{ success: boolean; data: PayrollSubmission }> {
+    const response = await apiClient.post(`/payroll/${id}/resubmit`);
+    return response.data;
+  },
+
+  async getPayrollHistory(id: number | string): Promise<{ success: boolean; data: any[] }> {
+    const response = await apiClient.get(`/payroll/${id}/history`);
+    return response.data;
   }
 };

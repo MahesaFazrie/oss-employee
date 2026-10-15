@@ -41,6 +41,14 @@ Tabel user bawaan Laravel, ditambah kolom `role_id`.
 | created_at | timestamp | Yes | Waktu dibuat |
 | updated_at | timestamp | Yes | Waktu diupdate |
 
+**Seed Data (`UserSeeder`):**
+
+| Role | Name | Email | Password | Status |
+|------|------|-------|----------|--------|
+| `superadmin` | Super Admin | `admin@oss.com` | `password123` | `active` |
+| `direktur` | Direktur Utama | `direktur@oss.com` | `password123` | `active` |
+| `karyawan` | Karyawan Demo | `karyawan@oss.com` | `password123` | `active` |
+
 ### `roles`
 
 Daftar role dalam sistem. Bersifat dinamis (bisa ditambah/diubah via admin).

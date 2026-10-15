@@ -1,4 +1,25 @@
 services:
+  # ─── Frontend (Next.js) ──────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: oss-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NODE_ENV=development
+      - HOSTNAME=0.0.0.0
+      - WATCHPACK_POLLING=true
+    networks:
+      - oss-network
+
   # ─── Backend (Laravel + PHP-FPM) ────────────────────────
   backend:
     build:

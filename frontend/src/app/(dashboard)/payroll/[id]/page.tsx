@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { payrollService, PayrollSubmission } from '@/services/payroll';
+import { payrollService, PayrollSubmission, StatusHistoryItem } from '@/services/payroll';
+import StatusTimeline from '@/components/StatusTimeline';
 
 export default function PayrollDetailPage() {
   const params = useParams();
@@ -11,7 +12,7 @@ export default function PayrollDetailPage() {
   const id = params?.id as string;
 
   const [submission, setSubmission] = useState<PayrollSubmission | null>(null);
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<StatusHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResubmitting, setIsResubmitting] = useState(false);
@@ -293,41 +294,8 @@ export default function PayrollDetailPage() {
       </div>
 
       {/* Status History (Audit Trail) */}
-      <div>
-        <h3 className="text-lg font-bold text-gray-800 mb-3">Riwayat Status & Catatan Peninjau</h3>
-        {history.length > 0 ? (
-          <div className="space-y-3">
-            {history.map((h) => (
-              <div key={h.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900">{h.changed_by?.name || 'Sistem'}</span>
-                    <span className="text-gray-400">&bull;</span>
-                    <span className="text-gray-600">
-                      Mengubah status dari <strong>{h.from_status}</strong> &rarr; <strong className="text-blue-600">{h.to_status}</strong>
-                    </span>
-                  </div>
-                  {h.notes && (
-                    <div className="mt-1 text-gray-700 italic bg-white p-2 rounded border border-gray-100">
-                      &ldquo;{h.notes}&rdquo;
-                    </div>
-                  )}
-                </div>
-                <div className="text-gray-400 whitespace-nowrap">
-                  {new Date(h.created_at).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-gray-400">Belum ada riwayat perubahan status.</p>
-        )}
+      <div className="pt-4 border-t border-gray-100">
+        <StatusTimeline history={history} title="Riwayat Status & Catatan Peninjau" />
       </div>
     </div>
   );

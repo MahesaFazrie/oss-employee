@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { directorService, DirectorPayroll } from '@/services/director';
+import StatusTimeline from '@/components/StatusTimeline';
 
 export default function DirectorPayrollDetailPage() {
   const params = useParams();
@@ -248,41 +249,8 @@ export default function DirectorPayrollDetailPage() {
       </div>
 
       {/* Status History Timeline */}
-      <div>
-        <h3 className="text-lg font-bold text-gray-800 mb-3">Riwayat Perubahan Status (Audit Trail)</h3>
-        {payroll.status_history && payroll.status_history.length > 0 ? (
-          <div className="space-y-3">
-            {payroll.status_history.map((h) => (
-              <div key={h.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900">{h.changed_by?.name || 'Sistem'}</span>
-                    <span className="text-gray-400">&bull;</span>
-                    <span className="text-gray-600">
-                      Mengubah status dari <strong>{h.from_status}</strong> &rarr; <strong className="text-blue-600">{h.to_status}</strong>
-                    </span>
-                  </div>
-                  {h.notes && (
-                    <div className="mt-1 text-gray-700 italic bg-white p-2 rounded border border-gray-100">
-                      &ldquo;{h.notes}&rdquo;
-                    </div>
-                  )}
-                </div>
-                <div className="text-gray-400 whitespace-nowrap">
-                  {new Date(h.created_at).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-gray-400">Belum ada riwayat perubahan status.</p>
-        )}
+      <div className="pt-4 border-t border-gray-100">
+        <StatusTimeline history={payroll.status_history || []} title="Riwayat Perubahan Status (Audit Trail)" />
       </div>
 
       {/* Modal Aksi Direktur */}

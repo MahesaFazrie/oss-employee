@@ -93,5 +93,12 @@ export const payrollService = {
   async getPayrollHistory(id: number | string): Promise<{ success: boolean; data: StatusHistoryItem[] }> {
     const response = await apiClient.get(`/payroll/${id}/history`);
     return response.data;
-  }
+  },
+
+  async downloadPaymentProof(id: number | string): Promise<Blob> {
+    const response = await apiClient.get(`/director/payrolls/${id}/payment-proof`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };

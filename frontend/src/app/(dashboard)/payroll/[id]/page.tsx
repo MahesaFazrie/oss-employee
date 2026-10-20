@@ -16,6 +16,7 @@ export default function PayrollDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResubmitting, setIsResubmitting] = useState(false);
+  const [isDownloadingProof, setIsDownloadingProof] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDetail = async () => {
@@ -71,6 +72,33 @@ export default function PayrollDetailPage() {
       alert(err.response?.data?.message || 'Gagal mengajukan ulang payroll.');
     } finally {
       setIsResubmitting(false);
+    }
+  };
+
+  const handleDownloadProof = async () => {
+    setIsDownloadingProof(true);
+    try {
+      const blob = await payrollService.downloadPaymentProof(id);
+
+      if (blob.type === 'application/json') {
+        const text = await blob.text();
+        const err = JSON.parse(text);
+        alert(err.message || 'Bukti pembayaran belum tersedia.');
+        return;
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bukti-transfer-payroll-${submission?.id || id}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Gagal mengunduh bukti pembayaran.');
+    } finally {
+      setIsDownloadingProof(false);
     }
   };
 
@@ -207,6 +235,36 @@ export default function PayrollDetailPage() {
             className="whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-md text-sm font-semibold shadow transition-colors disabled:opacity-50"
           >
             {isSubmitting ? 'Memproses...' : 'Ajukan Sekarang (Submit)'}
+          </button>
+        </div>
+      )}
+
+      {/* Processed Payment Notice Banner for Employee */}
+      {submission.status === 'processed' && (
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-emerald-900">Gaji Telah Selesai Dibayarkan</h4>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                Penggajian untuk periode ini telah diverifikasi dan diselesaikan oleh Direktur. Anda dapat mengunduh bukti transfer resmi melalui tombol di samping.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleDownloadProof}
+            disabled={isDownloadingProof}
+            className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow transition-colors disabled:opacity-50 flex items-center gap-2 self-start sm:self-auto"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            {isDownloadingProof ? 'Mengunduh...' : 'Unduh Bukti Transfer'}
           </button>
         </div>
       )}

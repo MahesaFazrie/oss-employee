@@ -180,9 +180,19 @@ export default function DirectorPayrollListPage() {
                     <td className="px-5 py-4 whitespace-nowrap text-right">
                       <Link
                         href={`/director/payrolls/${p.id}`}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 rounded text-xs font-semibold shadow-sm transition-colors"
+                        className={`px-3.5 py-1.5 rounded text-xs font-semibold shadow-sm transition-colors text-white ${
+                          p.status === 'approved'
+                            ? 'bg-indigo-600 hover:bg-indigo-700'
+                            : p.status === 'processed'
+                            ? 'bg-emerald-600 hover:bg-emerald-700'
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
                       >
-                        Tinjau &rarr;
+                        {p.status === 'approved'
+                          ? 'Proses Bayar →'
+                          : p.status === 'processed'
+                          ? 'Bukti & Detail →'
+                          : 'Tinjau →'}
                       </Link>
                     </td>
                   </tr>

@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 use App\Models\PayrollStatusHistory;
+use App\Models\User;
 
 class PayrollController extends Controller
 {
@@ -172,6 +173,7 @@ class PayrollController extends Controller
                 $director->notify(new \App\Notifications\PayrollStatusNotification($submission, 'submitted', null, true));
             }
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Payroll submit error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             DB::rollBack();
             return $this->errorResponse(
                 message: 'Gagal submit payroll. Silakan coba lagi.',

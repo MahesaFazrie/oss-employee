@@ -18,13 +18,8 @@ class DatabaseSeeder extends Seeder
         // Seed baseline roles & permissions
         $this->call(RolePermissionSeeder::class);
 
-        // Create a test user (only in non-production)
-        if (app()->environment('local', 'testing')) {
-            User::factory()->create([
-                'name' => 'Test User',
-                'email' => 'test@example.com',
-            ]);
-        }
+        // Seed baseline users for dev & testing
+        $this->call(UserSeeder::class);
     }
 }
 

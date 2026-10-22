@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: oss-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile.render
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: APP_NAME
+        value: "One Stop Service"
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        value: base64:jMEhiBNNi6qGNHBhiOKaF21BIczXdRjQfq7tNpFkW28=
+      - key: APP_URL
+        fromService:
+          type: web
+          name: oss-backend
+          property: host
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        value: aws-0-ap-northeast-1.pooler.supabase.com
+      - key: DB_PORT
+        value: "6543"
+      - key: DB_DATABASE
+        value: postgres
+      - key: DB_USERNAME
+        value: postgres.bshhiugtecencknpihpz
+      - key: DB_PASSWORD
+        value: Hayase.1245
+      - key: SESSION_DRIVER
+        value: cookie
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: LOG_CHANNEL
+        value: stderr

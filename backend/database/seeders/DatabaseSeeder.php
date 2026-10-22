@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
     {
         // Seed baseline roles & permissions
         $this->call(RolePermissionSeeder::class);
+        $this->call(UserSeeder::class);
 
         // Seed baseline users for dev & testing
         $this->call(UserSeeder::class);

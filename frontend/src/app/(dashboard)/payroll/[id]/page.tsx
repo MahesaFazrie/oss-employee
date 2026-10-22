@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { payrollService, PayrollSubmission } from '@/services/payroll';
+import { payrollService, PayrollSubmission, StatusHistoryItem } from '@/services/payroll';
+import StatusTimeline from '@/components/StatusTimeline';
 
 export default function PayrollDetailPage() {
   const params = useParams();
@@ -11,10 +12,11 @@ export default function PayrollDetailPage() {
   const id = params?.id as string;
 
   const [submission, setSubmission] = useState<PayrollSubmission | null>(null);
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<StatusHistoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResubmitting, setIsResubmitting] = useState(false);
+  const [isDownloadingProof, setIsDownloadingProof] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDetail = async () => {
@@ -70,6 +72,33 @@ export default function PayrollDetailPage() {
       alert(err.response?.data?.message || 'Gagal mengajukan ulang payroll.');
     } finally {
       setIsResubmitting(false);
+    }
+  };
+
+  const handleDownloadProof = async () => {
+    setIsDownloadingProof(true);
+    try {
+      const blob = await payrollService.downloadPaymentProof(id);
+
+      if (blob.type === 'application/json') {
+        const text = await blob.text();
+        const err = JSON.parse(text);
+        alert(err.message || 'Bukti pembayaran belum tersedia.');
+        return;
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bukti-transfer-payroll-${submission?.id || id}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Gagal mengunduh bukti pembayaran.');
+    } finally {
+      setIsDownloadingProof(false);
     }
   };
 
@@ -210,6 +239,36 @@ export default function PayrollDetailPage() {
         </div>
       )}
 
+      {/* Processed Payment Notice Banner for Employee */}
+      {submission.status === 'processed' && (
+        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 bg-emerald-600 text-white rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-emerald-900">Gaji Telah Selesai Dibayarkan</h4>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                Penggajian untuk periode ini telah diverifikasi dan diselesaikan oleh Direktur. Anda dapat mengunduh bukti transfer resmi melalui tombol di samping.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleDownloadProof}
+            disabled={isDownloadingProof}
+            className="whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow transition-colors disabled:opacity-50 flex items-center gap-2 self-start sm:self-auto"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            {isDownloadingProof ? 'Mengunduh...' : 'Unduh Bukti Transfer'}
+          </button>
+        </div>
+      )}
+
       {/* Info Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-5">
@@ -293,41 +352,8 @@ export default function PayrollDetailPage() {
       </div>
 
       {/* Status History (Audit Trail) */}
-      <div>
-        <h3 className="text-lg font-bold text-gray-800 mb-3">Riwayat Status & Catatan Peninjau</h3>
-        {history.length > 0 ? (
-          <div className="space-y-3">
-            {history.map((h) => (
-              <div key={h.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900">{h.changed_by?.name || 'Sistem'}</span>
-                    <span className="text-gray-400">&bull;</span>
-                    <span className="text-gray-600">
-                      Mengubah status dari <strong>{h.from_status}</strong> &rarr; <strong className="text-blue-600">{h.to_status}</strong>
-                    </span>
-                  </div>
-                  {h.notes && (
-                    <div className="mt-1 text-gray-700 italic bg-white p-2 rounded border border-gray-100">
-                      &ldquo;{h.notes}&rdquo;
-                    </div>
-                  )}
-                </div>
-                <div className="text-gray-400 whitespace-nowrap">
-                  {new Date(h.created_at).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-gray-400">Belum ada riwayat perubahan status.</p>
-        )}
+      <div className="pt-4 border-t border-gray-100">
+        <StatusTimeline history={history} title="Riwayat Status & Catatan Peninjau" />
       </div>
     </div>
   );

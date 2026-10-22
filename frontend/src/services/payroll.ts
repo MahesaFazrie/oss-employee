@@ -10,6 +10,18 @@ export interface SnapshotItem {
   logbook_status: string;
 }
 
+export interface StatusHistoryItem {
+  id: number;
+  from_status: string;
+  to_status: string;
+  notes?: string | null;
+  changed_by?: {
+    id: number;
+    name: string;
+  } | null;
+  created_at: string;
+}
+
 export interface PayrollSubmission {
   id: number;
   user_id: number;
@@ -78,8 +90,15 @@ export const payrollService = {
     return response.data;
   },
 
-  async getPayrollHistory(id: number | string): Promise<{ success: boolean; data: any[] }> {
+  async getPayrollHistory(id: number | string): Promise<{ success: boolean; data: StatusHistoryItem[] }> {
     const response = await apiClient.get(`/payroll/${id}/history`);
     return response.data;
-  }
+  },
+
+  async downloadPaymentProof(id: number | string): Promise<Blob> {
+    const response = await apiClient.get(`/director/payrolls/${id}/payment-proof`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };

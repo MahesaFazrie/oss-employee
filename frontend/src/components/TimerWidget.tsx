@@ -35,7 +35,7 @@ export default function TimerWidget() {
         // Backend mengembalikan timestamp ISO
         setStartTime(new Date(res.data.started_at));
       }
-    } catch (err) {
+    } catch {
       // Jika 404 (tidak ada timer aktif), abaikan saja
     } finally {
       setIsLoading(false);
@@ -94,19 +94,19 @@ export default function TimerWidget() {
   };
 
   if (isLoading && !isActive) {
-    return <div className="text-sm text-gray-400 animate-pulse">Menghubungkan timer...</div>;
+    return <div className="text-xs text-gray-400 animate-pulse">Timer...</div>;
   }
 
   return (
-    <div className="flex items-center space-x-4 bg-gray-50 px-4 py-2 rounded-full border border-gray-200 shadow-sm">
-      <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-2 sm:space-x-3 bg-gray-50 px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full border border-gray-200 shadow-sm flex-shrink-0">
+      <div className="flex items-center space-x-1.5 sm:space-x-2">
         {isActive && (
-          <span className="relative flex h-3 w-3">
+          <span className="relative flex h-2.5 w-2.5 sm:h-3 sm:w-3">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-red-500"></span>
           </span>
         )}
-        <div className={`text-lg font-mono font-bold ${isActive ? 'text-gray-900' : 'text-gray-400'}`}>
+        <div className={`text-xs sm:text-base font-mono font-bold ${isActive ? 'text-gray-900' : 'text-gray-500'}`}>
           {formatTime(elapsed)}
         </div>
       </div>
@@ -115,15 +115,15 @@ export default function TimerWidget() {
         <button 
           onClick={handleStart} 
           disabled={isLoading}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-full text-sm font-semibold transition-colors disabled:opacity-50"
+          className="bg-green-600 hover:bg-green-700 text-white px-2.5 sm:px-3.5 py-1 rounded-full text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 whitespace-nowrap"
         >
-          Mulai Kerja
+          <span className="hidden sm:inline">Mulai </span>Kerja
         </button>
       ) : (
         <button 
-          onClick={handleStop}
+          onClick={handleStop} 
           disabled={isLoading} 
-          className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-full text-sm font-semibold transition-colors disabled:opacity-50"
+          className="bg-red-600 hover:bg-red-700 text-white px-2.5 sm:px-3.5 py-1 rounded-full text-xs sm:text-sm font-semibold transition-colors disabled:opacity-50 whitespace-nowrap"
         >
           Berhenti
         </button>

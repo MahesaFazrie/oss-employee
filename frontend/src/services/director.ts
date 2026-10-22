@@ -27,6 +27,14 @@ export interface LogbookComment {
   created_at: string;
 }
 
+export interface PaymentProofInfo {
+  id: number;
+  original_name: string;
+  mime_type: string;
+  file_size: number;
+  uploaded_at: string;
+}
+
 export interface DirectorPayroll {
   id: number;
   user_id: number;
@@ -130,5 +138,27 @@ export const directorService = {
   async markPayrollProcessed(id: number | string, notes?: string): Promise<{ success: boolean; message: string }> {
     const response = await apiClient.post(`/director/payrolls/${id}/mark-processed`, { notes });
     return response.data;
-  }
+  },
+
+  // ─── Payment Processing (OSS-501 & OSS-503) ───────
+  async uploadPaymentProof(
+    id: number | string,
+    file: File
+  ): Promise<{ success: boolean; data: PaymentProofInfo; message: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await apiClient.post(`/director/payrolls/${id}/payment-proof`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  async downloadPaymentProof(id: number | string): Promise<Blob> {
+    const response = await apiClient.get(`/director/payrolls/${id}/payment-proof`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };

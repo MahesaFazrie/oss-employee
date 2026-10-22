@@ -1,0 +1,56 @@
+FROM php:8.2-apache
+
+# Install dependensi sistem & driver PostgreSQL (pdo_pgsql)
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libpq-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    && docker-php-ext-install pdo pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Aktifkan modul rewrite Apache untuk routing Laravel
+RUN a2enmod rewrite
+
+# Arahkan Apache DocumentRoot ke folder public Laravel
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+# Konfigurasi Apache agar menggunakan port dinamis dari Render ($PORT)
+RUN sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
+
+# Install Composer resmi
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+# Copy file composer terlebih dahulu untuk cache layer
+COPY composer.json composer.lock ./
+
+# Install dependensi PHP tanpa dev dependencies
+RUN composer install --no-dev --optimize-autoloader --no-scripts
+
+# Copy seluruh source code backend
+COPY . .
+
+# Jalankan dump-autoload post-install
+RUN composer run-script post-autoload-dump
+
+# Set izin folder storage dan bootstrap cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Siapkan entrypoint script
+COPY docker-render-entrypoint.sh /usr/local/bin/docker-render-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-render-entrypoint.sh
+
+EXPOSE 80 10000
+
+ENTRYPOINT ["/usr/local/bin/docker-render-entrypoint.sh"]
